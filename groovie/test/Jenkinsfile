@@ -1,0 +1,41 @@
+@Library('my-shared-libs@master') _
+
+pipeline {
+    agent any
+
+    environment {
+        registry="bumeranghc/hellopython"
+        registryCredential='dockerhub'
+        dockerImage= ''
+    }
+
+    stages {
+        stage ('Checkout') {
+            steps {
+                checkout scm
+                prepareEnv()
+            }
+        }
+        stage ('Build') {
+            steps {
+                script {
+                    dockerImage=docker.build registry + ":$BUILD_NUMBER"
+                }
+            }
+        }
+        stage ('Deploy') {
+            steps {
+                script {
+                        docker.withRegistry('', registryCredential) {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+        stage ('Clean') {
+            steps {
+                bat "docker rmi $registry:$BUILD_NUMBER"
+            }
+        }
+    }
+}

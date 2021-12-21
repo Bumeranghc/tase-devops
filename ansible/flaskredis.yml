@@ -1,0 +1,80 @@
+- name: Run Flask and Redis in Docker Compose
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Tear down existing services
+      docker_compose:
+        project_src: .
+        state: absent
+      tags:
+        - teardown
+      register: output
+
+    - debug:
+        var: output
+
+    - name: Create and start services
+      docker_compose:
+        project_src: .
+      tags:
+        - start
+      register: output
+
+    - debug:
+        var: output
+
+    - assert:
+        that:
+          - "output.services.web.ansible_web_1.state.running"
+          - "output.services.redis.ansible_redis_1.state.running"
+
+    - name: Run `docker-compose up` again
+      docker_compose:
+        project_src: .
+        build: no
+      tags:
+        - up
+      register: output
+
+    - debug:
+        var: output
+
+    - assert:
+        that:
+          - "output.services.web.ansible_web_1.state.running"
+          - "output.services.redis.ansible_redis_1.state.running"
+
+    - name: Stop all services
+      docker_compose:
+        project_src: .
+        build: no
+        stopped: yes
+      tags:
+        - stop
+      register: output
+
+    - debug:
+        var: output
+
+    - assert:
+        that:
+          - "not output.services.web.ansible_web_1.state.running"
+          - "not output.services.redis.ansible_redis_1.state.running"
+
+    - name: Restart services
+      docker_compose:
+        project_src: .
+        build: no
+        restarted: yes
+      tags:
+        - restart
+      register: output
+
+    - debug:
+        var: output
+
+    - assert:
+        that:
+          - "output.services.web.ansible_web_1.state.running"
+          - "output.services.redis.ansible_redis_1.state.running"
+
